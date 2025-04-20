@@ -17,4 +17,6 @@ When a player makes a kill, it sends the data to the API
 
 To use, you MUST set `Tone_token`
 
-DM @Legonzaur#2100 to get a token
+# What did lexi change?
+
+tiny things to make it use the same matchid / serverid system as my other mod, and disabling the nutone_verify() function
