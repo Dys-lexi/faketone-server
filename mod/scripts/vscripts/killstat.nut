@@ -110,7 +110,7 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
     values["attacker_x"] <- attackerPos.x
     values["attacker_y"] <- attackerPos.y
     values["attacker_z"] <- attackerPos.z
-
+    values["timeofkill"] <- GetUnixTimestamp()
     values["victim_name"] <- sanitizePlayerName(victim.GetPlayerName())
     values["victim_id"] <- victim.GetUID()
     values["victim_current_weapon"] <- GetWeaponName(victim.GetLatestPrimaryWeapon())
@@ -123,6 +123,7 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
     values["victim_x"] <- victimPos.x
     values["victim_y"] <- victimPos.y
     values["victim_z"] <- victimPos.z
+    values["password"] <- GetConVarString("discordloggingserverpassword")
 
     int damageSourceId = DamageInfo_GetDamageSourceIdentifier(damageInfo)
     string damageName = DamageSourceIDToString(damageSourceId)
