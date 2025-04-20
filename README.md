@@ -17,6 +17,6 @@ When a player makes a kill, it sends the data to the API
 
 To use, you MUST set `Tone_token`
 
-# What did lexi change?
+# What are the changes?
 
 tiny things to make it use the same matchid / serverid system as my other mod, and disabling the nutone_verify() function
