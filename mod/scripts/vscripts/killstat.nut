@@ -37,13 +37,10 @@ void function killstat_Init() {
     file.token = GetConVarString("nutone_token")
     file.connected = false
     file.serverName = GetConVarString("ns_server_name")
-    file.serverId = GetConVarString("nutone_server_id")
-    if ( file.serverId == "" ) {
-        file.serverId = file.serverName
-    }
-
+    file.serverId = GetConVarString("discordloggingserverid")
+  
     //register to NUTONEAPI if default or invalid token
-    nutone_verify()
+    // nutone_verify()
 
     // callbacks
     AddCallback_GameStateEnter(eGameState.Playing, killstat_Begin)
@@ -59,7 +56,6 @@ void function JoinMessage(entity player) {
 }
 
 void function killstat_Begin() {
-    file.matchId = RandomInt(2000000000)
     file.gameMode = GameRules_GetGameMode()
     file.map = StringReplace(GetMapName(), "mp_", "")
 
@@ -96,9 +92,9 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
     vector attackerPos = attacker.GetOrigin()
     vector victimPos = victim.GetOrigin()
 
-    values["match_id"] <- format("%08x", file.matchId)
+    values["match_id"] <- GetConVarString("discordloggingmatchid")
     values["server_id"] <- file.serverId
-    values["server_name"] <- file.serverName
+    // values["server_name"] <- file.serverName
     values["game_mode"] <- file.gameMode
     values["game_time"] <- Time()
     values["map"] <- file.map
