@@ -8,7 +8,7 @@
             //"DefaultValue": "167.235.253.159:8080"
         {
             "Name": "nutone_host",
-            "DefaultValue": "nutone.okudai.dev"
+            "DefaultValue": "http://discordlog:3451"
         },
         {
             "Name": "nutone_token",
