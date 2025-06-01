@@ -128,10 +128,20 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
     int damageSourceId = DamageInfo_GetDamageSourceIdentifier(damageInfo)
     string damageName = DamageSourceIDToString(damageSourceId)
     values["cause_of_death"] <- damageName
-
+   
+    array<string> typedMods
+    if (IsValid(DamageInfo_GetWeapon(damageInfo))){
+        typedMods = DamageInfo_GetWeapon(damageInfo).GetMods()
+    }
+    array untypedMods = []
+    foreach (mod in typedMods){
+        untypedMods.append(mod)}
+        values["modsused"] <- untypedMods
+    
     float dist = Distance(attacker.GetOrigin(), victim.GetOrigin())
     values["distance"] <- dist
-
+    // printt("MODSSSS"+GetWeaponMods(DamageInfo_GetWeapon( damageInfo )))
+    PrintTable(untypedMods)
     HttpRequest request
     request.method = HttpRequestMethod.POST
     request.url = file.host + "/data"
@@ -159,6 +169,9 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
 void function killstat_End() {
     Log("-----END KILLSTAT-----")
 }
+
+
+
 
 array<int> MAIN_DAMAGE_SOURCES = [
     // primaries
