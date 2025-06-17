@@ -33,6 +33,7 @@ string function sanitizePlayerName(string name) {
 }
 
 void function killstat_Init() {
+    KcommandArr.append(new_KCommandStruct(["stats"], true,  CommandStats, 0, "Usage: !stats (player name or UID) => show your (or someone else's) stats on the server"))
     file.host = GetConVarString("nutone_host")
     file.token = GetConVarString("nutone_token")
     file.connected = false
@@ -53,6 +54,7 @@ string prefix = "\x1b[38;5;81m[NUTONEAPI]\x1b[0m "
 
 void function JoinMessage(entity player) {
     //Chat_ServerPrivateMessage(player, prefix + "This server collects data using the Nutone API. Check your data here: \x1b[34mhttps://nutone.okudai.dev/frontend" + player.GetPlayerName()+ "\x1b[0m", false, false)
+    thread CommandStats (player,[])
 }
 
 void function killstat_Begin() {
@@ -60,6 +62,104 @@ void function killstat_Begin() {
     file.map = StringReplace(GetMapName(), "mp_", "")
 
     Log("Sending kill data to " + file.host + "/data")
+}
+
+bool function CommandStats(entity player, array<string> args) {
+    entity targetPlayer = player
+    string nameOrUID = player.GetUID()
+    string targetName = player.GetPlayerName()
+    if (0 < args.len()) {
+        string searchStr = args[0]
+        targetName = args[0]
+        nameOrUID = args[0]
+
+        // PlayerSearchResult result = RunPlayerSearch(player, searchStr, PS_NOPRINT)
+        // if (result.kind == PlayerSearchResultKind.SINGLE) {
+        //     entity foundPlayer = result.players[0]
+        //     targetName = foundPlayer.GetPlayerName()
+        //     nameOrUID = foundPlayer.GetUID()
+        // }
+    }
+
+    string url = file.host + "/players/" + nameOrUID
+
+    void functionref( HttpRequestResponse ) onSuccess = void function (HttpRequestResponse response) : (player, targetName, nameOrUID,args)
+    {
+        // needed if player DC's before request finish
+        if (!IsValid(player)) {
+            return
+        }
+
+        if (NSIsSuccessHttpCode(response.statusCode)) {
+            table responseTable = DecodeJSON(response.body)
+            string name = ""
+            string uid = ""
+            int kills = 0
+            int deaths = 0
+            int counter = 0
+            // float kd = 1.0
+            bool shouldreturn = false
+            while (counter + "" in responseTable){
+                if (args.len() == 0){
+                Chat_ServerPrivateMessage(player,expect string(responseTable[counter+""]),false,false)}
+                else{
+                    Chat_ServerBroadcast(expect string(responseTable[counter+""]),false)
+                }
+                counter +=1
+                shouldreturn = true
+                // Chat_ServerPrivateMessage
+            }
+            if (shouldreturn){
+                return
+            }
+        
+            if ("name" in responseTable) {
+                name = expect string(responseTable["name"])
+            }
+
+            if ("uid" in responseTable) {
+                uid = expect string(responseTable["uid"])
+            }
+
+            if ("total" in responseTable){
+                if ("kills" in expect table(responseTable["total"])) {
+                    kills = expect int(expect table(responseTable["total"])["kills"])
+                }
+                if ("deaths" in expect table(responseTable["total"])) {
+                    deaths = expect int(expect table(responseTable["total"])["deaths"])
+                }
+            }
+
+            // TODO: figure out how to extract float
+            //if ("kd" in responseTable) {
+            //    kd = expect float(responseTable["kd"])
+            //    Log("[CommandStats] kd = " + kd)
+            //}
+
+
+            string prefix = "you have"
+            if (player.GetUID() != uid) {
+                prefix = name + " has"
+            }
+
+            float kd = kills / max(deaths, 1)
+            // file.nutonePlayerKds[uid] <- kd // Store for !teambalance
+            string msg = format("%s %d kills and %d deaths (%.2f K/D)", prefix, kills, deaths, kd)
+            Chat_ServerPrivateMessage(player, msg,false,false)
+        } else {
+            Chat_ServerPrivateMessage(player,format("could not find stats for '%s'", targetName),false,false)
+        }
+    }
+    void functionref( HttpRequestFailure ) onFailure = void function ( HttpRequestFailure failure ) : (player, targetName)
+    {
+        Chat_ServerPrivateMessage(player, "could not find stats for " + targetName,false,false)
+    }
+
+    table<string, array<string> > params
+    params[ "server_id" ] <- [file.serverId]
+    NSHttpGet(url, params, onSuccess, onFailure)
+
+    return true
 }
 
 void function killstat_Record(entity victim, entity attacker, var damageInfo) {
@@ -141,7 +241,7 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
     float dist = Distance(attacker.GetOrigin(), victim.GetOrigin())
     values["distance"] <- dist
     // printt("MODSSSS"+GetWeaponMods(DamageInfo_GetWeapon( damageInfo )))
-    PrintTable(untypedMods)
+    // PrintTable(untypedMods)
     HttpRequest request
     request.method = HttpRequestMethod.POST
     request.url = file.host + "/data"
