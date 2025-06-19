@@ -33,7 +33,7 @@ string function sanitizePlayerName(string name) {
 }
 
 void function killstat_Init() {
-    KcommandArr.append(new_KCommandStruct(["stats"], true,  CommandStats, 0, "Usage: !stats (player name or UID) => show your (or someone else's) stats on the server"))
+    KcommandArr.append(new_KCommandStruct(["stats"], false,  CommandStats, 0, "Usage: !stats (player name or UID) => show your (or someone else's) stats on the server"))
     file.host = GetConVarString("nutone_host")
     file.token = GetConVarString("nutone_token")
     file.connected = false
@@ -54,7 +54,7 @@ string prefix = "\x1b[38;5;81m[NUTONEAPI]\x1b[0m "
 
 void function JoinMessage(entity player) {
     //Chat_ServerPrivateMessage(player, prefix + "This server collects data using the Nutone API. Check your data here: \x1b[34mhttps://nutone.okudai.dev/frontend" + player.GetPlayerName()+ "\x1b[0m", false, false)
-    thread CommandStats (player,[])
+    thread CommandStats(player,[])
 }
 
 void function killstat_Begin() {
@@ -63,7 +63,10 @@ void function killstat_Begin() {
 
     Log("Sending kill data to " + file.host + "/data")
 }
-
+// void function waitabit(entity player){
+//     wait 1
+//     CommandStats(player,[])
+// }
 bool function CommandStats(entity player, array<string> args) {
     entity targetPlayer = player
     string nameOrUID = player.GetUID()
@@ -155,75 +158,108 @@ bool function CommandStats(entity player, array<string> args) {
         Chat_ServerPrivateMessage(player, "could not find stats for " + targetName,false,false)
     }
 
-    table<string, array<string> > params
-    params[ "server_id" ] <- [file.serverId]
-    NSHttpGet(url, params, onSuccess, onFailure)
+    table params = {}
+    params[ "server_id" ] <- file.serverId
+    // if (args.len() == 0) {
+    //     array<entity> attackerWeapons = player.GetMainWeapons()
+    //     entity aw1 = GetNthWeapon(attackerWeapons, 0)
+    //     Chat_ServerPrivateMessage(player,GetWeaponName(aw1),false,false)
+    // params[ "current_weapon"] <- GetWeaponName(aw1)}
+    HttpRequest request
+	request.method = HttpRequestMethod.POST
+	request.url = url
+	request.body = EncodeJSON(params)
+    NSHttpRequest(request, onSuccess, onFailure)
 
     return true
 }
 
 void function killstat_Record(entity victim, entity attacker, var damageInfo) {
-    if ( !victim.IsPlayer() || !attacker.IsPlayer() || GetGameState() != eGameState.Playing ) 
-            return
-
+    // printt("beep boop bop")
+    if ((!victim.IsPlayer() && !attacker.IsPlayer()) || GetGameState() != eGameState.Playing ) {
+        // printt("here")
+        // Chat_PrivateMessage(victim,victim, "PRIVATE MESSAGE"+(attacker.GetClassName()) +(!victim.IsPlayer() && !attacker.IsPlayer()) ,false)
+            return}
+    // printt("HEREE")
+    // Chat_PrivateMessage(victim,victim, "PRIVATE MESSAGwwwwE"+(attacker.GetClassName()) +(!victim.IsPlayer() && !attacker.IsPlayer()) ,false)
     table values = {}
 
-    array<entity> attackerWeapons = attacker.GetMainWeapons()
-    array<entity> victimWeapons = victim.GetMainWeapons()
-    array<entity> attackerOffhandWeapons = attacker.GetOffhandWeapons()
+
+
     array<entity> victimOffhandWeapons = victim.GetOffhandWeapons()
 
-    attackerWeapons.sort(MainWeaponSort)
-    victimWeapons.sort(MainWeaponSort)
-
-    entity aw1 = GetNthWeapon(attackerWeapons, 0)
-    entity aw2 = GetNthWeapon(attackerWeapons, 1)
-    entity aw3 = GetNthWeapon(attackerWeapons, 2)
-    entity vw1 = GetNthWeapon(victimWeapons, 0)
-    entity vw2 = GetNthWeapon(victimWeapons, 1)
-    entity vw3 = GetNthWeapon(victimWeapons, 2)
-    entity aow1 = GetNthWeapon(attackerOffhandWeapons, 0)
-    entity aow2 = GetNthWeapon(attackerOffhandWeapons, 1)
-    entity aow3 = GetNthWeapon(attackerOffhandWeapons, 2)
-    entity vow1 = GetNthWeapon(victimOffhandWeapons, 0)
-    entity vow2 = GetNthWeapon(victimOffhandWeapons, 1)
-    entity vow3 = GetNthWeapon(victimOffhandWeapons, 2)
-
+      array<entity> victimWeapons = victim.GetMainWeapons()
+victimWeapons.sort(MainWeaponSort)
     vector attackerPos = attacker.GetOrigin()
     vector victimPos = victim.GetOrigin()
+          entity vw1 = GetNthWeapon(victimWeapons, 0)
+        entity vw2 = GetNthWeapon(victimWeapons, 1)
+        entity vw3 = GetNthWeapon(victimWeapons, 2)
+            entity vow1 = GetNthWeapon(victimOffhandWeapons, 0)
+    entity vow2 = GetNthWeapon(victimOffhandWeapons, 1)
+    entity vow3 = GetNthWeapon(victimOffhandWeapons, 2)
+    if (attacker.IsPlayer()){
+        values["attacker_name"] <- sanitizePlayerName(attacker.GetPlayerName())
+        values["attacker_id"] <- attacker.GetUID()
+        values["attacker_titan"] <- GetTitan(attacker)
 
+    }
+    if (attacker.IsPlayer() || attacker.IsNPC()){
+            array<entity> attackerWeapons = attacker.GetMainWeapons()
+    array<entity> attackerOffhandWeapons = attacker.GetOffhandWeapons()
+        attackerWeapons.sort(MainWeaponSort)
+        
+  
+
+        entity aw1 = GetNthWeapon(attackerWeapons, 0)
+        entity aw2 = GetNthWeapon(attackerWeapons, 1)
+        entity aw3 = GetNthWeapon(attackerWeapons, 2)
+        entity aow1 = GetNthWeapon(attackerOffhandWeapons, 0)
+        entity aow2 = GetNthWeapon(attackerOffhandWeapons, 1)
+        entity aow3 = GetNthWeapon(attackerOffhandWeapons, 2)
+            values["attacker_weapon_1"] <- GetWeaponName(aw1)
+    values["attacker_weapon_2"] <- GetWeaponName(aw2)
+    values["attacker_weapon_3"] <- GetWeaponName(aw3)
+    values["attacker_offhand_weapon_1"] <- GetWeaponName(aow1)
+    values["attacker_offhand_weapon_2"] <- GetWeaponName(aow2)
+    values["attacker_current_weapon"] <- GetWeaponName(attacker.GetLatestPrimaryWeapon())
+
+    }
+
+    values["victim_name"] <- sanitizePlayerName(victim.GetPlayerName())
+    values["victim_id"] <- victim.GetUID()
+    values["victim_titan"] <- GetTitan(victim)
+    // Chat_PrivateMessage(attacker,attacker, "PRIVATE MESSAGE"+attacker.GetClassName,false)
     values["match_id"] <- GetConVarString("discordloggingmatchid")
     values["server_id"] <- file.serverId
     // values["server_name"] <- file.serverName
     values["game_mode"] <- file.gameMode
     values["game_time"] <- Time()
     values["map"] <- file.map
-    values["attacker_name"] <- sanitizePlayerName(attacker.GetPlayerName())
-    values["attacker_id"] <- attacker.GetUID()
-    values["attacker_current_weapon"] <- GetWeaponName(attacker.GetLatestPrimaryWeapon())
-    values["attacker_weapon_1"] <- GetWeaponName(aw1)
-    values["attacker_weapon_2"] <- GetWeaponName(aw2)
-    values["attacker_weapon_3"] <- GetWeaponName(aw3)
-    values["attacker_offhand_weapon_1"] <- GetWeaponName(aow1)
-    values["attacker_offhand_weapon_2"] <- GetWeaponName(aow2)
-    values["attacker_titan"] <- GetTitan(attacker)
+    
+    
+    
+
+    
     values["attacker_x"] <- attackerPos.x
     values["attacker_y"] <- attackerPos.y
     values["attacker_z"] <- attackerPos.z
     values["timeofkill"] <- GetUnixTimestamp()
-    values["victim_name"] <- sanitizePlayerName(victim.GetPlayerName())
-    values["victim_id"] <- victim.GetUID()
+
     values["victim_current_weapon"] <- GetWeaponName(victim.GetLatestPrimaryWeapon())
     values["victim_weapon_1"] <-  GetWeaponName(vw1)
     values["victim_weapon_2"] <- GetWeaponName(vw2)
     values["victim_weapon_3"] <- GetWeaponName(vw3)
     values["victim_offhand_weapon_1"] <- GetWeaponName(vow1)
     values["victim_offhand_weapon_2"] <- GetWeaponName(vow2)
-    values["victim_titan"] <- GetTitan(victim)
+
     values["victim_x"] <- victimPos.x
     values["victim_y"] <- victimPos.y
     values["victim_z"] <- victimPos.z
     values["password"] <- GetConVarString("discordloggingserverpassword")
+    values["victim_type"] <- victim.GetClassName()
+    values["attacker_type"] <-attacker.GetClassName()
+    // values["attacker_title"] <- attacker.Title()
 
     int damageSourceId = DamageInfo_GetDamageSourceIdentifier(damageInfo)
     string damageName = DamageSourceIDToString(damageSourceId)
@@ -263,6 +299,8 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
         print("[NUTONEAPI][WARN]  Couldn't send kill data")
         print("[NUTONEAPI][WARN] " + failure.errorMessage )
     }
+    // Chat_PrivateMessage(victim,victim, "PRIVATE MESSAGE"+(attacker.GetClassName()) +(!victim.IsPlayer() && !attacker.IsPlayer()) ,false)
+    // printt("HEREEww")
     NSHttpRequest(request, onSuccess, onFailure)
 }
 
