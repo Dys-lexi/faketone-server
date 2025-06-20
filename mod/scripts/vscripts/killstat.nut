@@ -68,6 +68,10 @@ void function killstat_Begin() {
 //     CommandStats(player,[])
 // }
 bool function CommandStats(entity player, array<string> args) {
+    if (GetGameState() > eGameState.Playing) {
+        Chat_ServerPrivateMessage(player,"\x1b[38;2;220;0;0mStats not available at map end, wait for next map",false,false)
+        return true
+    }
     entity targetPlayer = player
     string nameOrUID = player.GetUID()
     string targetName = player.GetPlayerName()
