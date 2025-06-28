@@ -33,8 +33,9 @@ string function sanitizePlayerName(string name) {
 }
 
 void function killstat_Init() {
-    KcommandArr.append(new_KCommandStruct(["stats"], false,  CommandStats, 0, "Usage: !stats (player name or UID) => show your (or someone else's) stats on the server"))
-    file.host = GetConVarString("nutone_host")
+    KcommandArr.append(new_KCommandStruct(["stats"], false,  realstats, 0, "Usage: !stats (player name or UID) => show your (or someone else's) stats on the server"))
+    KcommandArr.append(new_KCommandStruct(["bettertb"], false,  threadtbreal, 1, "actually good tb!!! woa!!! no way!!!"))
+    file.host = GetConVarString("discordlogginghttpServer")
     file.token = GetConVarString("nutone_token")
     file.connected = false
     file.serverName = GetConVarString("ns_server_name")
@@ -51,6 +52,14 @@ void function killstat_Init() {
 }
 
 string prefix = "\x1b[38;5;81m[NUTONEAPI]\x1b[0m "
+bool function realstats (entity player, array<string> args){
+    thread CommandStats(player,args)
+    return true
+}
+bool function threadtbreal (entity player, array<string> args){
+    thread actuallygoodbalance(player,args)
+    return true
+}
 
 void function JoinMessage(entity player) {
     //Chat_ServerPrivateMessage(player, prefix + "This server collects data using the Nutone API. Check your data here: \x1b[34mhttps://nutone.okudai.dev/frontend" + player.GetPlayerName()+ "\x1b[0m", false, false)
@@ -67,6 +76,64 @@ void function killstat_Begin() {
 //     wait 1
 //     CommandStats(player,[])
 // }
+
+
+bool function actuallygoodbalance(entity player, array<string> args){
+    table<string,string> uids
+    table<string,entity> uidentmap
+    foreach(entity player in GetPlayerArray()){
+        string teammessage = "unknown"
+        int playerteam = player.GetTeam()
+        if( playerteam == 2 ){
+            teammessage = "imc"}
+        if( playerteam == 3 ){
+            teammessage = "mil"}
+            uids[player.GetUID()] <- teammessage
+            uidentmap[player.GetUID()] <- player
+        }
+    string url = file.host + "/autobalancedata"
+
+    void functionref( HttpRequestResponse ) onSuccess = void function (HttpRequestResponse response) : (uidentmap)
+    {
+                for(int i = 0; i < GetPlayerArray().len(); i++){
+            SendHudMessageBuilder(GetPlayerArray()[i], "Teams have been betterbalanced by idk something", 255, 200, 200)
+        }
+        if (NSIsSuccessHttpCode(response.statusCode)) {
+            table responseTable = DecodeJSON(response.body)
+            table stats = expect table( responseTable.stats)
+            int counter = 2
+
+            while (counter + "" in stats){
+        
+                table people = expect table(stats[counter+""])
+                foreach ( person in  people){
+                    table realperson = expect table(person)
+                    SetTeam(uidentmap[expect string(realperson.uid)], counter)
+                }
+                counter +=1
+                // Chat_ServerPrivateMessage
+            }
+
+
+        }
+    }
+    void functionref( HttpRequestFailure ) onFailure = void function ( HttpRequestFailure failure ) 
+    {
+        Chat_ServerBroadcast("sobbing balance brokey sob sob sob",false)
+    }
+
+    table params = {}
+    params[ "password" ] <- GetConVarString("discordloggingserverpassword")
+    params["players"] <- EncodeJSON(uids)
+    
+    HttpRequest request
+	request.method = HttpRequestMethod.POST
+	request.url = url
+	request.body = EncodeJSON(params)
+    NSHttpRequest(request, onSuccess, onFailure)
+    return true
+    
+}
 bool function CommandStats(entity player, array<string> args) {
     if (GetGameState() > eGameState.Playing) {
         Chat_ServerPrivateMessage(player,"\x1b[38;2;220;0;0mStats not available at map end, wait for next map",false,false)
@@ -177,6 +244,8 @@ bool function CommandStats(entity player, array<string> args) {
 
     return true
 }
+
+
 
 void function killstat_Record(entity victim, entity attacker, var damageInfo) {
     // printt("beep boop bop")
