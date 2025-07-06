@@ -33,7 +33,7 @@ string function sanitizePlayerName(string name) {
 }
 
 void function killstat_Init() {
-    KcommandArr.append(new_KCommandStruct(["stats"], false,  realstats, 0, "Usage: !stats (player name or UID) => show your (or someone else's) stats on the server"))
+    // KcommandArr.append(new_KCommandStruct(["stats"], false,  realstats, 0, "Usage: !stats (player name or UID) => show your (or someone else's) stats on the server"))
     KcommandArr.append(new_KCommandStruct(["bettertb"], false,  threadtbreal, 1, "actually good tb!!! woa!!! no way!!!"))
     file.host = GetConVarString("discordlogginghttpServer")
     file.token = GetConVarString("nutone_token")
@@ -63,7 +63,8 @@ bool function threadtbreal (entity player, array<string> args){
 
 void function JoinMessage(entity player) {
     //Chat_ServerPrivateMessage(player, prefix + "This server collects data using the Nutone API. Check your data here: \x1b[34mhttps://nutone.okudai.dev/frontend" + player.GetPlayerName()+ "\x1b[0m", false, false)
-    thread CommandStats(player,[])
+    // thread CommandStats(player,[])
+    runcommandondiscord("stats",{ name = player.GetUID()})
 }
 
 void function killstat_Begin() {
