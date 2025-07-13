@@ -47,6 +47,7 @@ void function killstat_Init() {
     // callbacks
     AddCallback_GameStateEnter(eGameState.Playing, killstat_Begin)
     AddCallback_OnPlayerKilled(killstat_Record)
+    AddCallback_OnNPCKilled(killstat_Record)
     AddCallback_GameStateEnter(eGameState.Postmatch, killstat_End)
     AddCallback_OnClientConnected(JoinMessage)
 }
@@ -250,7 +251,7 @@ bool function CommandStats(entity player, array<string> args) {
 
 void function killstat_Record(entity victim, entity attacker, var damageInfo) {
     // printt("beep boop bop")
-    if ((!victim.IsPlayer() && !attacker.IsPlayer()) || GetGameState() != eGameState.Playing ) {
+    if ((!victim.IsPlayer() && !attacker.IsPlayer() && !attacker.GetBossPlayer() && !victim.GetBossPlayer())  || GetGameState() != eGameState.Playing ) {
         // printt("here")
         // Chat_PrivateMessage(victim,victim, "PRIVATE MESSAGE"+(attacker.GetClassName()) +(!victim.IsPlayer() && !attacker.IsPlayer()) ,false)
             return}
@@ -258,28 +259,37 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
     // Chat_PrivateMessage(victim,victim, "PRIVATE MESSAGwwwwE"+(attacker.GetClassName()) +(!victim.IsPlayer() && !attacker.IsPlayer()) ,false)
     table values = {}
 
-
-
-    array<entity> victimOffhandWeapons = victim.GetOffhandWeapons()
-
-      array<entity> victimWeapons = victim.GetMainWeapons()
-victimWeapons.sort(MainWeaponSort)
     vector attackerPos = attacker.GetOrigin()
     vector victimPos = victim.GetOrigin()
-          entity vw1 = GetNthWeapon(victimWeapons, 0)
-        entity vw2 = GetNthWeapon(victimWeapons, 1)
-        entity vw3 = GetNthWeapon(victimWeapons, 2)
-            entity vow1 = GetNthWeapon(victimOffhandWeapons, 0)
-    entity vow2 = GetNthWeapon(victimOffhandWeapons, 1)
-    entity vow3 = GetNthWeapon(victimOffhandWeapons, 2)
-    if (attacker.IsPlayer()){
+    // Chat_ServerBroadcast(attacker.GetBossPlayer()+"e")
+    // Chat_ServerBroadcast(victim.GetBossPlayer()+"e")
+
+    if (attacker.IsPlayer()) {
         values["attacker_name"] <- sanitizePlayerName(attacker.GetPlayerName())
         values["attacker_id"] <- attacker.GetUID()
         values["attacker_titan"] <- GetTitan(attacker)
+    }
+    else if (attacker.GetBossPlayer()) {
+        entity boss = attacker.GetBossPlayer()
+        values["attacker_name"] <- sanitizePlayerName(boss.GetPlayerName())
+        values["attacker_id"] <- boss.GetUID()
+        values["attacker_titan"] <- GetTitan(boss)
+    }
 
+    if (victim.IsPlayer()) {
+        values["victim_name"] <- sanitizePlayerName(victim.GetPlayerName())
+        values["victim_id"] <- victim.GetUID()
+        values["victim_titan"] <- GetTitan(victim)
+    }
+    else if (victim.GetBossPlayer()) {
+        entity boss = victim.GetBossPlayer()
+        values["victim_name"] <- sanitizePlayerName(boss.GetPlayerName())
+        values["victim_id"] <- boss.GetUID()
+        values["victim_titan"] <- GetTitan(boss)
     }
     if (attacker.IsPlayer() || attacker.IsNPC()){
             array<entity> attackerWeapons = attacker.GetMainWeapons()
+
     array<entity> attackerOffhandWeapons = attacker.GetOffhandWeapons()
         attackerWeapons.sort(MainWeaponSort)
         
@@ -299,10 +309,29 @@ victimWeapons.sort(MainWeaponSort)
     values["attacker_current_weapon"] <- GetWeaponName(attacker.GetLatestPrimaryWeapon())
 
     }
+    if (victim.IsPlayer() || victim.IsNPC()){
+       array<entity> victimOffhandWeapons = victim.GetOffhandWeapons()
 
-    values["victim_name"] <- sanitizePlayerName(victim.GetPlayerName())
-    values["victim_id"] <- victim.GetUID()
-    values["victim_titan"] <- GetTitan(victim)
+      array<entity> victimWeapons = victim.GetMainWeapons()
+victimWeapons.sort(MainWeaponSort)
+
+          entity vw1 = GetNthWeapon(victimWeapons, 0)
+        entity vw2 = GetNthWeapon(victimWeapons, 1)
+        entity vw3 = GetNthWeapon(victimWeapons, 2)
+            entity vow1 = GetNthWeapon(victimOffhandWeapons, 0)
+    entity vow2 = GetNthWeapon(victimOffhandWeapons, 1)
+    entity vow3 = GetNthWeapon(victimOffhandWeapons, 2)
+            values["victim_weapon_1"] <- GetWeaponName(vw1)
+    values["victim_weapon_2"] <- GetWeaponName(vw2)
+    values["victim_weapon_3"] <- GetWeaponName(vw3)
+    values["victim_offhand_weapon_1"] <- GetWeaponName(vow1)
+    values["victim_offhand_weapon_2"] <- GetWeaponName(vow2)
+    values["victim_current_weapon"] <- GetWeaponName(victim.GetLatestPrimaryWeapon())
+
+    }
+    // values["victim_name"] <- sanitizePlayerName(victim.GetPlayerName())
+    // values["victim_id"] <- victim.GetUID()
+    // values["victim_titan"] <- GetTitan(victim)
     // Chat_PrivateMessage(attacker,attacker, "PRIVATE MESSAGE"+attacker.GetClassName,false)
     values["match_id"] <- GetConVarString("discordloggingmatchid")
     values["server_id"] <- file.serverId
@@ -320,12 +349,12 @@ victimWeapons.sort(MainWeaponSort)
     values["attacker_z"] <- attackerPos.z
     values["timeofkill"] <- GetUnixTimestamp()
 
-    values["victim_current_weapon"] <- GetWeaponName(victim.GetLatestPrimaryWeapon())
-    values["victim_weapon_1"] <-  GetWeaponName(vw1)
-    values["victim_weapon_2"] <- GetWeaponName(vw2)
-    values["victim_weapon_3"] <- GetWeaponName(vw3)
-    values["victim_offhand_weapon_1"] <- GetWeaponName(vow1)
-    values["victim_offhand_weapon_2"] <- GetWeaponName(vow2)
+    // values["victim_current_weapon"] <- GetWeaponName(victim.GetLatestPrimaryWeapon())
+    // values["victim_weapon_1"] <-  GetWeaponName(vw1)
+    // values["victim_weapon_2"] <- GetWeaponName(vw2)
+    // values["victim_weapon_3"] <- GetWeaponName(vw3)
+    // values["victim_offhand_weapon_1"] <- GetWeaponName(vow1)
+    // values["victim_offhand_weapon_2"] <- GetWeaponName(vow2)
 
     values["victim_x"] <- victimPos.x
     values["victim_y"] <- victimPos.y
