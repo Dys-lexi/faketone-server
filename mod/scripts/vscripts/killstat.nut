@@ -263,6 +263,7 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
     vector victimPos = victim.GetOrigin()
     // Chat_ServerBroadcast(attacker.GetBossPlayer()+"e")
     // Chat_ServerBroadcast(victim.GetBossPlayer()+"e")
+    
 
     if (attacker.IsPlayer()) {
         values["attacker_name"] <- sanitizePlayerName(attacker.GetPlayerName())
@@ -273,7 +274,7 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
         entity boss = attacker.GetBossPlayer()
         values["attacker_name"] <- sanitizePlayerName(boss.GetPlayerName())
         values["attacker_id"] <- boss.GetUID()
-        values["attacker_titan"] <- GetTitan(boss)
+        values["attacker_titan"] <- GetTitan(attacker)
     }
 
     if (victim.IsPlayer()) {
@@ -285,7 +286,7 @@ void function killstat_Record(entity victim, entity attacker, var damageInfo) {
         entity boss = victim.GetBossPlayer()
         values["victim_name"] <- sanitizePlayerName(boss.GetPlayerName())
         values["victim_id"] <- boss.GetUID()
-        values["victim_titan"] <- GetTitan(boss)
+        values["victim_titan"] <- GetTitan(victim)
     }
     if (attacker.IsPlayer() || attacker.IsNPC()){
             array<entity> attackerWeapons = attacker.GetMainWeapons()
@@ -492,6 +493,10 @@ string function GetWeaponName(entity weapon) {
 
 string function GetTitan(entity player) {
     if(!player.IsTitan()) return "null"
+    if ( discordlogpullplayerstat(player.GetUID(),"togglebrute") == "True" && (player.GetModelName() == $"models/titans/light/titan_light_northstar_prime.mdl" || player.GetModelName() == $"models/titans/light/titan_light_raptor.mdl")){
+        return "brute"
+    }
+
     return GetTitanCharacterName(player)
 }
 
