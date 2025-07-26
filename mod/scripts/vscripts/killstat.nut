@@ -502,6 +502,15 @@ string function GetTitan(entity player, bool getboss = false) {
         return "brute"
     }   
     }
+    if (getboss){
+    if (discordlogpullplayerstat(player.GetBossPlayer().GetUID(),"toggleexpi") == "True" && (player.GetModelName() == $"models/titans/medium/titan_medium_vanguard.mdl" )){
+        return "expedition"
+    }}
+    else{
+    if (discordlogpullplayerstat(player.GetUID(),"toggleexpi") == "True" && (player.GetModelName() == $"models/titans/medium/titan_medium_vanguard.mdl")){
+        return "expedition"
+    }   
+    }
 
     return GetTitanCharacterName(player)
 }
